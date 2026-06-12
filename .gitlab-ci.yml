@@ -1,0 +1,78 @@
+stages:
+  - validate
+  - build
+
+variables:
+  MANIFEST_PATH: "manifests/suite-dev.yaml"
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+default:
+  image: python:3.12-slim
+  before_script:
+    - python --version
+    - dpkg-deb --version | head -3
+    - pip install --cache-dir "$PIP_CACHE_DIR" pyyaml
+  cache:
+    key: "$CI_COMMIT_REF_SLUG"
+    paths:
+      - .cache/pip
+
+validate:
+  stage: validate
+  script:
+    - python -m py_compile packaging/build_suite.py packaging/create_dummy_artifacts.py
+    - |
+      python - <<'PY'
+      import os
+      from pathlib import Path
+      import yaml
+
+      paths = [
+          Path(".gitlab-ci.yml"),
+          Path(".github/workflows/release.yml"),
+          Path(os.environ["MANIFEST_PATH"]),
+      ]
+      for path in paths:
+          with path.open() as handle:
+              yaml.safe_load(handle)
+          print(f"OK {path}")
+      PY
+
+build:dev:
+  stage: build
+  needs:
+    - validate
+  script:
+    - python packaging/create_dummy_artifacts.py
+    - python packaging/build_suite.py --manifest "$MANIFEST_PATH"
+  artifacts:
+    name: "rim-tir-suite-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
+    expire_in: 30 days
+    paths:
+      - dist/*.deb
+      - dist/*.tar.gz
+      - dist/manifest.json
+      - dist/checksums.sha256
+
+build:manual:
+  stage: build
+  needs:
+    - validate
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+    - when: never
+  script:
+    - |
+      if [ "$MANIFEST_PATH" = "manifests/suite-dev.yaml" ]; then
+        python packaging/create_dummy_artifacts.py
+      fi
+    - python packaging/build_suite.py --manifest "$MANIFEST_PATH"
+  artifacts:
+    name: "rim-tir-suite-manual-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
+    expire_in: 90 days
+    paths:
+      - dist/*.deb
+      - dist/*.tar.gz
+      - dist/manifest.json
+      - dist/checksums.sha256

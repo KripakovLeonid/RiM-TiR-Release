@@ -23,6 +23,19 @@ python3 packaging/build_suite.py --manifest manifests/suite-dev.yaml
 
 Output is written to `dist/`.
 
+## CI
+
+GitHub Actions and GitLab CI are both present during the migration period:
+
+- GitHub: `.github/workflows/release.yml`
+- GitLab: `.gitlab-ci.yml`
+
+GitLab CI uses `MANIFEST_PATH` to choose the suite manifest. The default value
+is `manifests/suite-dev.yaml`, which creates dummy component artifacts before
+building the Debian packages and suite archive.
+
+Manual GitLab runs can override `MANIFEST_PATH` from the pipeline form.
+
 ## Layout
 
 ```text
