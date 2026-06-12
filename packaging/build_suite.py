@@ -8,7 +8,6 @@ import os
 import shutil
 import subprocess
 import tarfile
-import tempfile
 import zipfile
 from pathlib import Path
 from string import Template
@@ -184,47 +183,27 @@ def make_client_package(
     return output
 
 
-def make_protocol_package(
-    manifest: dict[str, Any],
-    manifest_path: Path,
-    extract_root: Path,
-    dist_dir: Path,
-) -> Path:
-    suite = manifest["suite"]
-    target = manifest["target"]
-    package_info = manifest["packages"]["protocol"]
-    package_name = package_info["name"]
-    version = suite["version"]
-    deb_arch = target["deb_arch"]
+PACKAGE_BUILDERS = {
+    "client": make_client_package,
+}
 
-    package_root = extract_root / "packages" / package_name
-    template_dir = ROOT / "templates" / "protocol"
-    values = {
-        "package_name": package_name,
-        "version": version,
-        "architecture": deb_arch,
-        "maintainer": package_info["maintainer"],
-        "description": package_info["description"],
-    }
-    copy_template_tree(template_dir, package_root, values)
 
-    protocol_archive = artifact_path(manifest_path, manifest["components"]["protocol"])
-    protocol_extract = extract_root / "components" / "protocol"
-    extract_archive(protocol_archive, protocol_extract)
+PACKAGE_SERVICES = {
+    "client": "rim-tir-client.service",
+}
 
-    protocol_binary = find_single_file(protocol_extract, ["tir-protocol", "tir-protocol.exe"])
-    protocol_dst = package_root / "usr" / "bin" / "rim-tir-protocol"
-    protocol_dst.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(protocol_binary, protocol_dst)
-    protocol_dst.chmod(0o755)
 
-    lib_dirs = [path for path in protocol_extract.rglob("lib") if path.is_dir()]
-    if lib_dirs:
-        copy_tree_contents(lib_dirs[0], package_root / "usr" / "lib" / "rim-tir-protocol")
-
-    output = dist_dir / f"{package_name}_{version}_{deb_arch}.deb"
-    build_deb(package_root, output)
-    return output
+def enabled_packages(manifest: dict[str, Any]) -> list[str]:
+    packages = manifest.get("packages") or {}
+    enabled = packages.get("enabled")
+    if enabled is None:
+        return ["client"]
+    if not isinstance(enabled, list) or not all(isinstance(item, str) for item in enabled):
+        raise ValueError("packages.enabled must be a list of package ids")
+    unknown = [item for item in enabled if item not in PACKAGE_BUILDERS]
+    if unknown:
+        raise ValueError(f"unsupported package ids: {', '.join(unknown)}")
+    return enabled
 
 
 def make_release_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[str, Any]:
@@ -279,7 +258,16 @@ def make_suite_bundle(
     copy_template_tree(
         suite_template,
         suite_root,
-        {"suite_name": suite_name, "version": version, "target_id": target_id},
+        {
+            "suite_name": suite_name,
+            "version": version,
+            "target_id": target_id,
+            "package_names": " ".join(path.name.split("_", 1)[0] for path in package_files),
+            "service_names": " ".join(
+                service for package_id in enabled_packages(manifest)
+                if (service := PACKAGE_SERVICES.get(package_id))
+            ),
+        },
     )
     for script_name in ["install.sh", "uninstall.sh"]:
         path = suite_root / script_name
@@ -314,8 +302,8 @@ def main() -> None:
     ensure_clean_dir(work_dir)
 
     package_files = [
-        make_client_package(manifest, manifest_path, work_dir, dist_dir),
-        make_protocol_package(manifest, manifest_path, work_dir, dist_dir),
+        PACKAGE_BUILDERS[package_id](manifest, manifest_path, work_dir, dist_dir)
+        for package_id in enabled_packages(manifest)
     ]
     release_manifest = make_release_manifest(manifest, manifest_path)
     release_manifest_path = dist_dir / "manifest.json"

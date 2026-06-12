@@ -1,9 +1,0 @@
-Package: $package_name
-Version: $version
-Section: net
-Priority: optional
-Architecture: $architecture
-Maintainer: $maintainer
-Depends: adduser
-Recommends: mosquitto
-Description: $description

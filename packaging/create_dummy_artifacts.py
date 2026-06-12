@@ -38,15 +38,7 @@ def main() -> None:
         ARTIFACTS / "backend-linux-amd64.tar.gz",
         "bin/tir-backend",
         "#!/bin/sh\n"
-        "echo 'dummy tir-backend: use real go-tir-backend artifact for production'\n"
-        "sleep 3600\n",
-    )
-
-    write_executable_tar(
-        ARTIFACTS / "protocol-linux-amd64.tar.gz",
-        "bin/tir-protocol",
-        "#!/bin/sh\n"
-        "echo 'dummy tir-protocol: use real protocol artifact for production'\n"
+        "echo 'dummy tir-backend: use a real backend artifact for production'\n"
         "sleep 3600\n",
     )
 

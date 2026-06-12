@@ -11,32 +11,23 @@ target:
 components:
   frontend:
     product: rim-tir-frontend
-    repo: DeanOlanigan/rim-tir-app
+    repo: ""
     source:
       type: local
       path: artifacts/frontend-dist.zip
 
   backend:
     product: rim-tir-backend
-    repo: DeanOlanigan/go-tir-backend
+    repo: ""
     source:
       type: local
       path: artifacts/backend-linux-amd64.tar.gz
 
-  protocol:
-    product: rim-tir-protocol
-    repo: DeanOlanigan/rim-tir-protocol
-    source:
-      type: local
-      path: artifacts/protocol-linux-amd64.tar.gz
-
 packages:
+  enabled:
+    - client
+
   client:
     name: rim-tir-client
     description: RiM-TiR client package with backend API and web UI
-    maintainer: RiM-TiR Team <support@example.invalid>
-
-  protocol:
-    name: rim-tir-protocol
-    description: RiM-TiR protocol service
     maintainer: RiM-TiR Team <support@example.invalid>

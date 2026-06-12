@@ -10,6 +10,6 @@ else
 fi
 
 if command -v systemctl >/dev/null 2>&1; then
-    systemctl enable rim-tir-client.service rim-tir-protocol.service >/dev/null || true
-    systemctl restart rim-tir-client.service rim-tir-protocol.service
+    systemctl enable $service_names >/dev/null || true
+    systemctl restart $service_names
 fi

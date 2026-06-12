@@ -1,54 +1,65 @@
 # RiM-TiR-Release
 
-Repository for RiM-TiR release manifests and final distributable builds.
+Репозиторий манифестов и финальной сборки установочных комплектов RiM-TiR.
 
-The repository does not own component source code. Component repositories build
-their own artifacts, and this repository assembles those artifacts into
-installable packages and a suite bundle.
+Этот репозиторий не хранит исходный код компонентов продукта. Компонентные
+репозитории сами собирают свои артефакты, а этот репозиторий забирает готовые
+артефакты и упаковывает их в установочные пакеты и общий комплект поставки.
 
-## Current MVP
+## Текущий MVP
 
-The first implementation supports local artifacts and builds:
+Первая версия сборщика работает с локальными артефактами и собирает:
 
 - `rim-tir-client_<version>_<arch>.deb`
-- `rim-tir-protocol_<version>_<arch>.deb`
 - `rim-tir-suite_<version>_<target>.tar.gz`
 
-Create sample artifacts and build the suite locally:
+Создать тестовые артефакты и собрать комплект локально:
 
 ```bash
 python3 packaging/create_dummy_artifacts.py
 python3 packaging/build_suite.py --manifest manifests/suite-dev.yaml
 ```
 
-Output is written to `dist/`.
+Результат сборки появляется в папке `dist/`.
 
 ## CI
 
-GitHub Actions and GitLab CI are both present during the migration period:
+На время миграции поддерживаются оба CI:
 
 - GitHub: `.github/workflows/release.yml`
 - GitLab: `.gitlab-ci.yml`
 
-GitLab CI uses `MANIFEST_PATH` to choose the suite manifest. The default value
-is `manifests/suite-dev.yaml`, which creates dummy component artifacts before
-building the Debian packages and suite archive.
+GitLab CI использует переменную `MANIFEST_PATH`, чтобы выбрать манифест сборки.
+По умолчанию используется `manifests/suite-dev.yaml`. Для этого dev-манифеста
+pipeline сначала создает тестовые артефакты, а затем собирает Debian-пакет и
+общий архив поставки.
 
-Manual GitLab runs can override `MANIFEST_PATH` from the pipeline form.
+При ручном запуске GitLab pipeline можно переопределить `MANIFEST_PATH` через
+форму запуска.
 
-## Layout
+## Стиль Коммитов
+
+Сообщения коммитов пишем на русском языке с коротким типом в начале:
 
 ```text
-manifests/            Suite manifests.
-packaging/            Build scripts.
-templates/client/     Debian package template for client package.
-templates/protocol/   Debian package template for protocol package.
-templates/suite/      Final bundle scripts and README.
+сборка: добавить сборку клиентского пакета
+ci: добавить проверку манифеста
+доки: описать формат артефактов
+исправление: поправить генерацию checksums
 ```
 
-## Component Contract
+## Структура
 
-Frontend artifact:
+```text
+manifests/            Манифесты комплектов поставки.
+packaging/            Скрипты сборки.
+templates/client/     Шаблон Debian-пакета клиентской части.
+templates/suite/      Скрипты и README для общего архива поставки.
+```
+
+## Контракт Артефактов
+
+Артефакт frontend:
 
 ```text
 dist/
@@ -56,17 +67,11 @@ dist/
   assets/
 ```
 
-Backend artifact:
+Артефакт backend:
 
 ```text
 bin/tir-backend
 ```
 
-Protocol artifact:
-
-```text
-bin/tir-protocol
-lib/                  optional runtime libraries
-```
-
-Future manifests can point to GitHub Release assets instead of local files.
+В будущих манифестах источниками смогут быть не локальные файлы, а release
+assets из GitHub или GitLab.
