@@ -1,0 +1,17 @@
+#!/bin/sh
+set -e
+
+if ! id rimtir >/dev/null 2>&1; then
+    adduser --system --group --home /var/lib/rim-tir rimtir >/dev/null
+fi
+
+install -d -o rimtir -g rimtir /var/lib/rim-tir/client
+install -d -o rimtir -g rimtir /var/log/rim-tir/client
+
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl daemon-reload
+    systemctl enable rim-tir-client.service >/dev/null || true
+    systemctl restart rim-tir-client.service || true
+fi
+
+exit 0

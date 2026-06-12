@@ -1,0 +1,54 @@
+name: Build Release Bundle
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      manifest:
+        description: Manifest path
+        required: true
+        default: manifests/suite-dev.yaml
+      publish_release:
+        description: Publish GitHub release
+        required: true
+        default: "false"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python dependencies
+        run: pip install pyyaml
+
+      - name: Create dummy artifacts for dev manifest
+        if: inputs.manifest == 'manifests/suite-dev.yaml' || github.event_name == 'pull_request'
+        run: python3 packaging/create_dummy_artifacts.py
+
+      - name: Build suite
+        run: python3 packaging/build_suite.py --manifest "${{ inputs.manifest || 'manifests/suite-dev.yaml' }}"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rim-tir-suite
+          path: dist/*
+
+      - name: Publish GitHub release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: suite-${{ github.run_number }}
+          name: RiM-TiR Suite ${{ github.run_number }}
+          files: dist/*

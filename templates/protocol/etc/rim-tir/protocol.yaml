@@ -1,0 +1,12 @@
+mqtt:
+  broker_url: tcp://127.0.0.1:1883
+  command_topic: command
+  telemetry_topic: telemetry
+
+paths:
+  data: /var/lib/rim-tir/protocol
+  logs: /var/log/rim-tir/protocol
+
+protocol:
+  serial_port: /dev/ttyS0
+  baud_rate: 115200

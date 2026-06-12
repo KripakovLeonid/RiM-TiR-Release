@@ -1,0 +1,6 @@
+artifacts/
+dist/
+work/
+*.log
+__pycache__/
+.pytest_cache/
