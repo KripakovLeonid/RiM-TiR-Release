@@ -34,13 +34,20 @@ def main() -> None:
         )
         archive.writestr("dist/assets/app.js", "console.log('rim-tir dummy frontend');\n")
 
-    write_executable_tar(
-        ARTIFACTS / "backend-linux-amd64.tar.gz",
-        "bin/tir-backend",
-        "#!/bin/sh\n"
-        "echo 'dummy tir-backend: use a real backend artifact for production'\n"
-        "sleep 3600\n",
-    )
+    for arch in ["amd64", "arm64", "armhf"]:
+        write_executable_tar(
+            ARTIFACTS / f"backend-linux-{arch}.tar.gz",
+            "bin/tir-backend",
+            "#!/bin/sh\n"
+            f"echo 'dummy tir-backend linux-{arch}: use a real backend artifact for production'\n"
+            "sleep 3600\n",
+        )
+
+    with zipfile.ZipFile(ARTIFACTS / "backend-windows-amd64.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr(
+            "bin/tir-backend.exe",
+            "dummy windows executable placeholder: use a real backend artifact for production\r\n",
+        )
 
     print(f"Created dummy artifacts in {ARTIFACTS}")
 

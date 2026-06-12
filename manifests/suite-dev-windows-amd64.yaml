@@ -1,0 +1,32 @@
+suite:
+  name: rim-tir-suite
+  version: 0.1.0-dev
+
+target:
+  os: windows
+  arch: amd64
+  id: windows-amd64
+
+components:
+  frontend:
+    product: rim-tir-frontend
+    repo: ""
+    source:
+      type: local
+      path: artifacts/frontend-dist.zip
+
+  backend:
+    product: rim-tir-backend
+    repo: ""
+    source:
+      type: local
+      path: artifacts/backend-windows-amd64.zip
+
+packages:
+  enabled:
+    - client
+
+  client:
+    name: rim-tir-client
+    description: RiM-TiR client package with backend API and web UI
+    maintainer: RiM-TiR Team <support@example.invalid>

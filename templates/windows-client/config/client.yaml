@@ -1,0 +1,19 @@
+http:
+  addr: 0.0.0.0:8080
+
+web:
+  path: web
+
+database:
+  path: data/app.db
+
+paths:
+  data: data
+  logs: logs
+
+mqtt:
+  broker: tcp://127.0.0.1:1883
+
+bootstrap:
+  admin_login: admin
+  admin_password: admin

@@ -4,6 +4,7 @@ stages:
 
 variables:
   MANIFEST_PATH: "manifests/suite-dev.yaml"
+  DEV_MANIFESTS: "manifests/suite-dev.yaml manifests/suite-dev-linux-arm64.yaml manifests/suite-dev-linux-armhf.yaml manifests/suite-dev-windows-amd64.yaml"
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
 default:
@@ -30,8 +31,8 @@ validate:
       paths = [
           Path(".gitlab-ci.yml"),
           Path(".github/workflows/release.yml"),
-          Path(os.environ["MANIFEST_PATH"]),
       ]
+      paths.extend(Path(path) for path in os.environ["DEV_MANIFESTS"].split())
       for path in paths:
           with path.open() as handle:
               yaml.safe_load(handle)
@@ -42,17 +43,28 @@ build:dev:
   stage: build
   needs:
     - validate
+  parallel:
+    matrix:
+      - TARGET_ID: "linux-amd64"
+        MANIFEST_PATH: "manifests/suite-dev.yaml"
+      - TARGET_ID: "linux-arm64"
+        MANIFEST_PATH: "manifests/suite-dev-linux-arm64.yaml"
+      - TARGET_ID: "linux-armhf"
+        MANIFEST_PATH: "manifests/suite-dev-linux-armhf.yaml"
+      - TARGET_ID: "windows-amd64"
+        MANIFEST_PATH: "manifests/suite-dev-windows-amd64.yaml"
   script:
     - python packaging/create_dummy_artifacts.py
-    - python packaging/build_suite.py --manifest "$MANIFEST_PATH"
+    - python packaging/build_suite.py --manifest "$MANIFEST_PATH" --dist-dir "dist/$TARGET_ID" --work-dir "work/$TARGET_ID"
   artifacts:
-    name: "rim-tir-suite-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
+    name: "rim-tir-suite-${TARGET_ID}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
     expire_in: 30 days
     paths:
-      - dist/*.deb
-      - dist/*.tar.gz
-      - dist/manifest.json
-      - dist/checksums.sha256
+      - dist/*/*.deb
+      - dist/*/*.zip
+      - dist/*/*.tar.gz
+      - dist/*/manifest.json
+      - dist/*/checksums.sha256
 
 build:manual:
   stage: build
@@ -64,7 +76,7 @@ build:manual:
     - when: never
   script:
     - |
-      if [ "$MANIFEST_PATH" = "manifests/suite-dev.yaml" ]; then
+      if echo "$DEV_MANIFESTS" | grep -qw "$MANIFEST_PATH"; then
         python packaging/create_dummy_artifacts.py
       fi
     - python packaging/build_suite.py --manifest "$MANIFEST_PATH"
@@ -73,6 +85,7 @@ build:manual:
     expire_in: 90 days
     paths:
       - dist/*.deb
+      - dist/*.zip
       - dist/*.tar.gz
       - dist/manifest.json
       - dist/checksums.sha256

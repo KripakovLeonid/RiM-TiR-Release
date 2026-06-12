@@ -127,6 +127,15 @@ def build_deb(package_root: Path, output_path: Path) -> None:
     )
 
 
+def build_zip(source_root: Path, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as archive:
+        for path in sorted(source_root.rglob("*")):
+            if path.is_dir():
+                continue
+            archive.write(path, path.relative_to(source_root))
+
+
 def normalize_deb_permissions(package_root: Path) -> None:
     package_root.chmod(0o755)
     for path in package_root.rglob("*"):
@@ -138,6 +147,18 @@ def normalize_deb_permissions(package_root: Path) -> None:
 
 
 def make_client_package(
+    manifest: dict[str, Any],
+    manifest_path: Path,
+    extract_root: Path,
+    dist_dir: Path,
+) -> Path:
+    target = manifest["target"]
+    if target["os"] == "windows":
+        return make_windows_client_package(manifest, manifest_path, extract_root, dist_dir)
+    return make_linux_client_package(manifest, manifest_path, extract_root, dist_dir)
+
+
+def make_linux_client_package(
     manifest: dict[str, Any],
     manifest_path: Path,
     extract_root: Path,
@@ -180,6 +201,51 @@ def make_client_package(
 
     output = dist_dir / f"{package_name}_{version}_{deb_arch}.deb"
     build_deb(package_root, output)
+    return output
+
+
+def make_windows_client_package(
+    manifest: dict[str, Any],
+    manifest_path: Path,
+    extract_root: Path,
+    dist_dir: Path,
+) -> Path:
+    suite = manifest["suite"]
+    target = manifest["target"]
+    package_info = manifest["packages"]["client"]
+    package_name = package_info["name"]
+    version = suite["version"]
+    target_id = target["id"]
+
+    package_root = extract_root / "packages" / f"{package_name}_{version}_{target_id}"
+    template_dir = ROOT / "templates" / "windows-client"
+    values = {
+        "package_name": package_name,
+        "version": version,
+        "target_id": target_id,
+        "maintainer": package_info["maintainer"],
+        "description": package_info["description"],
+    }
+    copy_template_tree(template_dir, package_root, values)
+
+    frontend_archive = artifact_path(manifest_path, manifest["components"]["frontend"])
+    backend_archive = artifact_path(manifest_path, manifest["components"]["backend"])
+    frontend_extract = extract_root / "components" / "frontend"
+    backend_extract = extract_root / "components" / "backend"
+    extract_archive(frontend_archive, frontend_extract)
+    extract_archive(backend_archive, backend_extract)
+
+    web_src = find_dir(frontend_extract, "dist")
+    web_dst = package_root / "web"
+    copy_tree_contents(web_src, web_dst)
+
+    backend_binary = find_single_file(backend_extract, ["tir-backend.exe"])
+    backend_dst = package_root / "bin" / "tir-backend.exe"
+    backend_dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(backend_binary, backend_dst)
+
+    output = dist_dir / f"{package_name}_{version}_{target_id}.zip"
+    build_zip(package_root, output)
     return output
 
 
@@ -254,7 +320,9 @@ def make_suite_bundle(
     checksums = suite_root / "checksums.sha256"
     write_checksums([packages_dir / path.name for path in package_files] + [manifest_json], checksums)
 
-    suite_template = ROOT / "templates" / "suite"
+    suite_template = ROOT / "templates" / (
+        "windows-suite" if manifest["target"]["os"] == "windows" else "suite"
+    )
     copy_template_tree(
         suite_template,
         suite_root,
@@ -262,6 +330,10 @@ def make_suite_bundle(
             "suite_name": suite_name,
             "version": version,
             "target_id": target_id,
+            "client_package_file": next(
+                (path.name for path in package_files if path.name.startswith("rim-tir-client_")),
+                "",
+            ),
             "package_names": " ".join(path.name.split("_", 1)[0] for path in package_files),
             "service_names": " ".join(
                 service for package_id in enabled_packages(manifest)
@@ -269,14 +341,18 @@ def make_suite_bundle(
             ),
         },
     )
-    for script_name in ["install.sh", "uninstall.sh"]:
+    for script_name in ["install.sh", "uninstall.sh", "install-client.bat"]:
         path = suite_root / script_name
         if path.exists():
             path.chmod(0o755)
 
-    output = dist_dir / f"{suite_name}.tar.gz"
-    with tarfile.open(output, "w:gz") as archive:
-        archive.add(suite_root, arcname=suite_name)
+    if manifest["target"]["os"] == "windows":
+        output = dist_dir / f"{suite_name}.zip"
+        build_zip(suite_root, output)
+    else:
+        output = dist_dir / f"{suite_name}.tar.gz"
+        with tarfile.open(output, "w:gz") as archive:
+            archive.add(suite_root, arcname=suite_name)
     return output
 
 

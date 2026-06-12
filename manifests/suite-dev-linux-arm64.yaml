@@ -1,0 +1,33 @@
+suite:
+  name: rim-tir-suite
+  version: 0.1.0-dev
+
+target:
+  os: linux
+  arch: arm64
+  deb_arch: arm64
+  id: linux-arm64
+
+components:
+  frontend:
+    product: rim-tir-frontend
+    repo: ""
+    source:
+      type: local
+      path: artifacts/frontend-dist.zip
+
+  backend:
+    product: rim-tir-backend
+    repo: ""
+    source:
+      type: local
+      path: artifacts/backend-linux-arm64.tar.gz
+
+packages:
+  enabled:
+    - client
+
+  client:
+    name: rim-tir-client
+    description: RiM-TiR client package with backend API and web UI
+    maintainer: RiM-TiR Team <support@example.invalid>

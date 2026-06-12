@@ -4,10 +4,6 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
-      manifest:
-        description: Manifest path
-        required: true
-        default: manifests/suite-dev.yaml
       publish_release:
         description: Publish GitHub release
         required: true
@@ -19,6 +15,18 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: linux-amd64
+            manifest: manifests/suite-dev.yaml
+          - target: linux-arm64
+            manifest: manifests/suite-dev-linux-arm64.yaml
+          - target: linux-armhf
+            manifest: manifests/suite-dev-linux-armhf.yaml
+          - target: windows-amd64
+            manifest: manifests/suite-dev-windows-amd64.yaml
 
     steps:
       - name: Checkout
@@ -32,23 +40,35 @@ jobs:
       - name: Install Python dependencies
         run: pip install pyyaml
 
-      - name: Create dummy artifacts for dev manifest
-        if: inputs.manifest == 'manifests/suite-dev.yaml' || github.event_name == 'pull_request'
+      - name: Create dummy artifacts for dev manifests
         run: python3 packaging/create_dummy_artifacts.py
 
       - name: Build suite
-        run: python3 packaging/build_suite.py --manifest "${{ inputs.manifest || 'manifests/suite-dev.yaml' }}"
+        run: python3 packaging/build_suite.py --manifest "${{ matrix.manifest }}" --dist-dir "dist/${{ matrix.target }}" --work-dir "work/${{ matrix.target }}"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: rim-tir-suite
-          path: dist/*
+          name: rim-tir-suite-${{ matrix.target }}
+          path: dist/${{ matrix.target }}/*
+
+  publish:
+    needs:
+      - build
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release == 'true'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: rim-tir-suite-*
+          path: release-dist
+          merge-multiple: true
 
       - name: Publish GitHub release
-        if: github.event_name == 'workflow_dispatch' && inputs.publish_release == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: suite-${{ github.run_number }}
           name: RiM-TiR Suite ${{ github.run_number }}
-          files: dist/*
+          files: release-dist/*
