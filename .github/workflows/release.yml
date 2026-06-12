@@ -13,7 +13,31 @@ permissions:
   contents: write
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    env:
+      DEV_MANIFESTS: "manifests/suite-dev.yaml manifests/suite-dev-linux-arm64.yaml manifests/suite-dev-linux-armhf.yaml manifests/suite-dev-windows-amd64.yaml"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build CI image
+        run: docker build -f ci/Dockerfile -t rim-tir-release-ci:local .
+
+      - name: Validate repository
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e DEV_MANIFESTS="$DEV_MANIFESTS" \
+            -v "$PWD:/workspace" \
+            rim-tir-release-ci:local \
+            ./ci/validate.sh
+
   build:
+    needs:
+      - validate
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -32,19 +56,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install Python dependencies
-        run: pip install pyyaml
-
-      - name: Create dummy artifacts for dev manifests
-        run: python3 packaging/create_dummy_artifacts.py
+      - name: Build CI image
+        run: docker build -f ci/Dockerfile -t rim-tir-release-ci:local .
 
       - name: Build suite
-        run: python3 packaging/build_suite.py --manifest "${{ matrix.manifest }}" --dist-dir "dist/${{ matrix.target }}" --work-dir "work/${{ matrix.target }}"
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e MANIFEST_PATH="${{ matrix.manifest }}" \
+            -e TARGET_ID="${{ matrix.target }}" \
+            -e CREATE_DUMMY_ARTIFACTS="true" \
+            -v "$PWD:/workspace" \
+            rim-tir-release-ci:local \
+            ./ci/build-release.sh
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

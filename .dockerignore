@@ -1,0 +1,10 @@
+.git
+.gitignore
+.dockerignore
+artifacts
+dist
+work
+__pycache__
+*.pyc
+*.log
+.pytest_cache

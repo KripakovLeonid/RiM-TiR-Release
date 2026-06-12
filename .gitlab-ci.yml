@@ -5,39 +5,19 @@ stages:
 variables:
   MANIFEST_PATH: "manifests/suite-dev.yaml"
   DEV_MANIFESTS: "manifests/suite-dev.yaml manifests/suite-dev-linux-arm64.yaml manifests/suite-dev-linux-armhf.yaml manifests/suite-dev-windows-amd64.yaml"
-  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  RELEASE_CI_IMAGE: "python:3.12-slim"
 
 default:
-  image: python:3.12-slim
+  image: "$RELEASE_CI_IMAGE"
   before_script:
     - python --version
     - dpkg-deb --version | head -3
-    - pip install --cache-dir "$PIP_CACHE_DIR" pyyaml
-  cache:
-    key: "$CI_COMMIT_REF_SLUG"
-    paths:
-      - .cache/pip
+    - pip install -r packaging/requirements.txt
 
 validate:
   stage: validate
   script:
-    - python -m py_compile packaging/build_suite.py packaging/create_dummy_artifacts.py
-    - |
-      python - <<'PY'
-      import os
-      from pathlib import Path
-      import yaml
-
-      paths = [
-          Path(".gitlab-ci.yml"),
-          Path(".github/workflows/release.yml"),
-      ]
-      paths.extend(Path(path) for path in os.environ["DEV_MANIFESTS"].split())
-      for path in paths:
-          with path.open() as handle:
-              yaml.safe_load(handle)
-          print(f"OK {path}")
-      PY
+    - ./ci/validate.sh
 
 build:dev:
   stage: build
@@ -54,8 +34,7 @@ build:dev:
       - TARGET_ID: "windows-amd64"
         MANIFEST_PATH: "manifests/suite-dev-windows-amd64.yaml"
   script:
-    - python packaging/create_dummy_artifacts.py
-    - python packaging/build_suite.py --manifest "$MANIFEST_PATH" --dist-dir "dist/$TARGET_ID" --work-dir "work/$TARGET_ID"
+    - CREATE_DUMMY_ARTIFACTS=true ./ci/build-release.sh
   artifacts:
     name: "rim-tir-suite-${TARGET_ID}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
     expire_in: 30 days
@@ -77,15 +56,15 @@ build:manual:
   script:
     - |
       if echo "$DEV_MANIFESTS" | grep -qw "$MANIFEST_PATH"; then
-        python packaging/create_dummy_artifacts.py
+        export CREATE_DUMMY_ARTIFACTS=true
       fi
-    - python packaging/build_suite.py --manifest "$MANIFEST_PATH"
+    - ./ci/build-release.sh
   artifacts:
     name: "rim-tir-suite-manual-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
     expire_in: 90 days
     paths:
-      - dist/*.deb
-      - dist/*.zip
-      - dist/*.tar.gz
-      - dist/manifest.json
-      - dist/checksums.sha256
+      - dist/*/*.deb
+      - dist/*/*.zip
+      - dist/*/*.tar.gz
+      - dist/*/manifest.json
+      - dist/*/checksums.sha256

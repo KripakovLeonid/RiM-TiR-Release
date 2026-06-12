@@ -62,7 +62,7 @@ def extract_archive(archive_path: Path, destination: Path) -> None:
         return
     if suffixes.endswith(".tar.gz") or suffixes.endswith(".tgz"):
         with tarfile.open(archive_path, "r:gz") as archive:
-            archive.extractall(destination)
+            archive.extractall(destination, filter="data")
         return
     raise ValueError(f"unsupported archive type: {archive_path}")
 
