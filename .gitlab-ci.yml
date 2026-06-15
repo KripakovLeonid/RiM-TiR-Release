@@ -3,8 +3,8 @@ stages:
   - build
 
 variables:
-  MANIFEST_PATH: "manifests/suite-dev.yaml"
-  DEV_MANIFESTS: "manifests/suite-dev.yaml manifests/suite-dev-linux-arm64.yaml manifests/suite-dev-linux-armhf.yaml manifests/suite-dev-windows-amd64.yaml"
+  MANIFEST_PATH: "manifests/client-linux-amd64.yaml"
+  CLIENT_MANIFESTS: "manifests/client-linux-amd64.yaml manifests/client-linux-arm64.yaml manifests/client-linux-armhf.yaml manifests/client-windows-amd64.yaml"
   RELEASE_CI_IMAGE: "python:3.12-slim"
 
 default:
@@ -19,33 +19,7 @@ validate:
   script:
     - ./ci/validate.sh
 
-build:dev:
-  stage: build
-  needs:
-    - validate
-  parallel:
-    matrix:
-      - TARGET_ID: "linux-amd64"
-        MANIFEST_PATH: "manifests/suite-dev.yaml"
-      - TARGET_ID: "linux-arm64"
-        MANIFEST_PATH: "manifests/suite-dev-linux-arm64.yaml"
-      - TARGET_ID: "linux-armhf"
-        MANIFEST_PATH: "manifests/suite-dev-linux-armhf.yaml"
-      - TARGET_ID: "windows-amd64"
-        MANIFEST_PATH: "manifests/suite-dev-windows-amd64.yaml"
-  script:
-    - CREATE_DUMMY_ARTIFACTS=true ./ci/build-release.sh
-  artifacts:
-    name: "rim-tir-suite-${TARGET_ID}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
-    expire_in: 30 days
-    paths:
-      - dist/*/*.deb
-      - dist/*/*.zip
-      - dist/*/*.tar.gz
-      - dist/*/manifest.json
-      - dist/*/checksums.sha256
-
-build:manual:
+build:client:
   stage: build
   needs:
     - validate
@@ -53,15 +27,21 @@ build:manual:
     - if: '$CI_PIPELINE_SOURCE == "web"'
       when: manual
     - when: never
+  parallel:
+    matrix:
+      - TARGET_ID: "linux-amd64"
+        MANIFEST_PATH: "manifests/client-linux-amd64.yaml"
+      - TARGET_ID: "linux-arm64"
+        MANIFEST_PATH: "manifests/client-linux-arm64.yaml"
+      - TARGET_ID: "linux-armhf"
+        MANIFEST_PATH: "manifests/client-linux-armhf.yaml"
+      - TARGET_ID: "windows-amd64"
+        MANIFEST_PATH: "manifests/client-windows-amd64.yaml"
   script:
-    - |
-      if echo "$DEV_MANIFESTS" | grep -qw "$MANIFEST_PATH"; then
-        export CREATE_DUMMY_ARTIFACTS=true
-      fi
     - ./ci/build-release.sh
   artifacts:
-    name: "rim-tir-suite-manual-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
-    expire_in: 90 days
+    name: "rim-tir-suite-${TARGET_ID}-${CI_COMMIT_REF_SLUG}-${CI_COMMIT_SHORT_SHA}"
+    expire_in: 30 days
     paths:
       - dist/*/*.deb
       - dist/*/*.zip

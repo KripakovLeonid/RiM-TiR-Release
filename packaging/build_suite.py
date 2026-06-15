@@ -358,7 +358,7 @@ def make_suite_bundle(
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--manifest", default="manifests/suite-dev.yaml")
+    parser.add_argument("--manifest", default="manifests/client-linux-amd64.yaml")
     parser.add_argument("--dist-dir", default=str(DEFAULT_DIST))
     parser.add_argument("--work-dir", default=str(DEFAULT_WORK))
     args = parser.parse_args()

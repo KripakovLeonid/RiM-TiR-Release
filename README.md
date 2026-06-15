@@ -6,30 +6,42 @@
 репозитории сами собирают свои артефакты, а этот репозиторий забирает готовые
 артефакты и упаковывает их в установочные пакеты и общий комплект поставки.
 
-## Текущий MVP
+## Текущая Сборка
 
-Первая версия сборщика работает с локальными артефактами и собирает:
+Репозиторий сейчас собирает только клиентскую часть RiM-TiR. На вход нужны
+готовые артефакты frontend и backend, указанные в выбранном manifest.
+
+На выходе собираются:
 
 - `rim-tir-client_<version>_<arch>.deb`
 - `rim-tir-suite_<version>_<target>.tar.gz`
 - `rim-tir-client_<version>_<target>.zip` для Windows
 - `rim-tir-suite_<version>_<target>.zip` для Windows
 
-Сейчас dev-сборка настроена под такие платформы:
+Сейчас сборка клиентской части настроена под такие платформы:
 
 - `linux-amd64`: Debian-пакет для Linux x86_64.
 - `linux-arm64`: Debian-пакет для Linux ARM64.
 - `linux-armhf`: Debian-пакет для Linux ARM 32-bit hard-float.
 - `windows-amd64`: переносимый Windows-пакет с `tir-backend.exe`.
 
-Создать тестовые артефакты и собрать комплект локально:
+Перед сборкой положите реальные артефакты в пути, указанные в manifest:
+
+```text
+artifacts/frontend-dist.zip
+artifacts/backend-linux-amd64.tar.gz
+artifacts/backend-linux-arm64.tar.gz
+artifacts/backend-linux-armhf.tar.gz
+artifacts/backend-windows-amd64.zip
+```
+
+Собрать комплект локально:
 
 ```bash
-python3 packaging/create_dummy_artifacts.py
-python3 packaging/build_suite.py --manifest manifests/suite-dev.yaml
-python3 packaging/build_suite.py --manifest manifests/suite-dev-linux-arm64.yaml
-python3 packaging/build_suite.py --manifest manifests/suite-dev-linux-armhf.yaml
-python3 packaging/build_suite.py --manifest manifests/suite-dev-windows-amd64.yaml
+python3 packaging/build_suite.py --manifest manifests/client-linux-amd64.yaml
+python3 packaging/build_suite.py --manifest manifests/client-linux-arm64.yaml
+python3 packaging/build_suite.py --manifest manifests/client-linux-armhf.yaml
+python3 packaging/build_suite.py --manifest manifests/client-windows-amd64.yaml
 ```
 
 Результат сборки появляется в папке `dist/`.
@@ -42,15 +54,15 @@ python3 packaging/build_suite.py --manifest manifests/suite-dev-windows-amd64.ya
 - GitLab: `.gitlab-ci.yml`
 
 GitLab CI использует переменную `MANIFEST_PATH`, чтобы выбрать манифест сборки.
-Обычная dev-сборка запускается матрицей по всем текущим dev-манифестам:
+Ручная сборка запускается матрицей по всем текущим клиентским манифестам:
 
-- `manifests/suite-dev.yaml`
-- `manifests/suite-dev-linux-arm64.yaml`
-- `manifests/suite-dev-linux-armhf.yaml`
-- `manifests/suite-dev-windows-amd64.yaml`
+- `manifests/client-linux-amd64.yaml`
+- `manifests/client-linux-arm64.yaml`
+- `manifests/client-linux-armhf.yaml`
+- `manifests/client-windows-amd64.yaml`
 
-Для этих dev-манифестов pipeline сначала создает тестовые артефакты, а затем
-собирает платформенные пакеты и общие архивы поставки.
+Pipeline не создает входные артефакты самостоятельно. Build job запускается вручную и
+ожидает, что настоящие артефакты уже доступны по путям, указанным в manifest.
 
 При ручном запуске GitLab pipeline можно переопределить `MANIFEST_PATH` через
 форму запуска.
@@ -72,7 +84,7 @@ docker build -f ci/Dockerfile -t rim-tir-release-ci:local .
 ```bash
 docker run --rm \
   --user "$(id -u):$(id -g)" \
-  -e DEV_MANIFESTS="manifests/suite-dev.yaml manifests/suite-dev-linux-arm64.yaml manifests/suite-dev-linux-armhf.yaml manifests/suite-dev-windows-amd64.yaml" \
+  -e CLIENT_MANIFESTS="manifests/client-linux-amd64.yaml manifests/client-linux-arm64.yaml manifests/client-linux-armhf.yaml manifests/client-windows-amd64.yaml" \
   -v "$PWD:/workspace" \
   rim-tir-release-ci:local \
   ./ci/validate.sh
@@ -83,9 +95,8 @@ docker run --rm \
 ```bash
 docker run --rm \
   --user "$(id -u):$(id -g)" \
-  -e MANIFEST_PATH="manifests/suite-dev-linux-arm64.yaml" \
+  -e MANIFEST_PATH="manifests/client-linux-arm64.yaml" \
   -e TARGET_ID="linux-arm64" \
-  -e CREATE_DUMMY_ARTIFACTS="true" \
   -v "$PWD:/workspace" \
   rim-tir-release-ci:local \
   ./ci/build-release.sh

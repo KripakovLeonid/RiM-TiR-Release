@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DEV_MANIFESTS: "manifests/suite-dev.yaml manifests/suite-dev-linux-arm64.yaml manifests/suite-dev-linux-armhf.yaml manifests/suite-dev-windows-amd64.yaml"
+      CLIENT_MANIFESTS: "manifests/client-linux-amd64.yaml manifests/client-linux-arm64.yaml manifests/client-linux-armhf.yaml manifests/client-windows-amd64.yaml"
 
     steps:
       - name: Checkout
@@ -30,7 +30,7 @@ jobs:
         run: |
           docker run --rm \
             --user "$(id -u):$(id -g)" \
-            -e DEV_MANIFESTS="$DEV_MANIFESTS" \
+            -e CLIENT_MANIFESTS="$CLIENT_MANIFESTS" \
             -v "$PWD:/workspace" \
             rim-tir-release-ci:local \
             ./ci/validate.sh
@@ -38,19 +38,20 @@ jobs:
   build:
     needs:
       - validate
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: linux-amd64
-            manifest: manifests/suite-dev.yaml
+            manifest: manifests/client-linux-amd64.yaml
           - target: linux-arm64
-            manifest: manifests/suite-dev-linux-arm64.yaml
+            manifest: manifests/client-linux-arm64.yaml
           - target: linux-armhf
-            manifest: manifests/suite-dev-linux-armhf.yaml
+            manifest: manifests/client-linux-armhf.yaml
           - target: windows-amd64
-            manifest: manifests/suite-dev-windows-amd64.yaml
+            manifest: manifests/client-windows-amd64.yaml
 
     steps:
       - name: Checkout
@@ -65,7 +66,6 @@ jobs:
             --user "$(id -u):$(id -g)" \
             -e MANIFEST_PATH="${{ matrix.manifest }}" \
             -e TARGET_ID="${{ matrix.target }}" \
-            -e CREATE_DUMMY_ARTIFACTS="true" \
             -v "$PWD:/workspace" \
             rim-tir-release-ci:local \
             ./ci/build-release.sh
