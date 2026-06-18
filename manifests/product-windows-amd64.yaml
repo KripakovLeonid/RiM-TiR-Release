@@ -1,0 +1,49 @@
+suite:
+  name: rim-tir-product
+  version: 0.1.0-dev
+
+target:
+  os: windows
+  arch: amd64
+  id: windows-amd64
+
+components:
+  tir_client:
+    product: TiR_client
+    repo: ""
+    executable: TiR_client.exe
+    source:
+      type: local
+      path: artifacts/windows-amd64/TiR_client.exe
+
+  tir_uspd:
+    product: TiR_USPD
+    repo: ""
+    executable: TiR_USPD.exe
+    source:
+      type: local
+      path: artifacts/windows-amd64/TiR_USPD.exe
+
+  tir_proto:
+    product: TiR_Proto
+    repo: ""
+    executable: TiR_Proto.exe
+    source:
+      type: local
+      path: artifacts/windows-amd64/TiR_Proto.exe
+
+  tir_update:
+    product: TiR_Update
+    repo: ""
+    executable: TiR_Update.exe
+    source:
+      type: local
+      path: artifacts/windows-amd64/TiR_Update.exe
+
+  tir_mqtt:
+    product: TiR_MQTT
+    repo: ""
+    executable: TiR_MQTT.exe
+    source:
+      type: local
+      path: artifacts/windows-amd64/TiR_MQTT.exe

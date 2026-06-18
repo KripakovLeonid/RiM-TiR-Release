@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      CLIENT_MANIFESTS: "manifests/client-linux-amd64.yaml manifests/client-linux-arm64.yaml manifests/client-linux-armhf.yaml manifests/client-windows-amd64.yaml"
+      PRODUCT_MANIFESTS: "manifests/product-linux-amd64.yaml manifests/product-linux-arm64.yaml manifests/product-windows-amd64.yaml"
 
     steps:
       - name: Checkout
@@ -30,7 +30,7 @@ jobs:
         run: |
           docker run --rm \
             --user "$(id -u):$(id -g)" \
-            -e CLIENT_MANIFESTS="$CLIENT_MANIFESTS" \
+            -e PRODUCT_MANIFESTS="$PRODUCT_MANIFESTS" \
             -v "$PWD:/workspace" \
             rim-tir-release-ci:local \
             ./ci/validate.sh
@@ -45,13 +45,11 @@ jobs:
       matrix:
         include:
           - target: linux-amd64
-            manifest: manifests/client-linux-amd64.yaml
+            manifest: manifests/product-linux-amd64.yaml
           - target: linux-arm64
-            manifest: manifests/client-linux-arm64.yaml
-          - target: linux-armhf
-            manifest: manifests/client-linux-armhf.yaml
+            manifest: manifests/product-linux-arm64.yaml
           - target: windows-amd64
-            manifest: manifests/client-windows-amd64.yaml
+            manifest: manifests/product-windows-amd64.yaml
 
     steps:
       - name: Checkout

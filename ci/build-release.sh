@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-MANIFEST_PATH="${MANIFEST_PATH:-manifests/client-linux-amd64.yaml}"
+MANIFEST_PATH="${MANIFEST_PATH:-manifests/product-linux-amd64.yaml}"
 TARGET_ID="${TARGET_ID:-}"
 
 if [ -z "$TARGET_ID" ]; then

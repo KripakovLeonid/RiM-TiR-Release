@@ -12,7 +12,7 @@ paths = [
     Path(".gitlab-ci.yml"),
     Path(".github/workflows/release.yml"),
 ]
-paths.extend(Path(path) for path in os.environ["CLIENT_MANIFESTS"].split())
+paths.extend(Path(path) for path in os.environ["PRODUCT_MANIFESTS"].split())
 
 for path in paths:
     with path.open(encoding="utf-8") as handle:

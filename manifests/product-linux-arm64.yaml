@@ -1,0 +1,49 @@
+suite:
+  name: rim-tir-product
+  version: 0.1.0-dev
+
+target:
+  os: linux
+  arch: arm64
+  id: linux-arm64
+
+components:
+  tir_client:
+    product: TiR_client
+    repo: ""
+    executable: TiR_client
+    source:
+      type: local
+      path: artifacts/linux-arm64/TiR_client
+
+  tir_uspd:
+    product: TiR_USPD
+    repo: ""
+    executable: TiR_USPD
+    source:
+      type: local
+      path: artifacts/linux-arm64/TiR_USPD
+
+  tir_proto:
+    product: TiR_Proto
+    repo: ""
+    executable: TiR_Proto
+    source:
+      type: local
+      path: artifacts/linux-arm64/TiR_Proto
+
+  tir_update:
+    product: TiR_Update
+    repo: ""
+    executable: TiR_Update
+    source:
+      type: local
+      path: artifacts/linux-arm64/TiR_Update
+
+  tir_mqtt:
+    product: TiR_MQTT
+    repo: ""
+    executable: TiR_MQTT
+    source:
+      type: local
+      path: artifacts/linux-arm64/TiR_MQTT
